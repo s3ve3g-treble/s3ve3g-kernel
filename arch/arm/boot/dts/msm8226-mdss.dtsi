@@ -69,7 +69,7 @@
 		qcom,mdss-intf-off = <0x00000000 0x00021300>;
 		qcom,mdss-rot-block-size = <64>;
 		qcom,mdss-rotator-ot-limit = <2>;
-		qcom,mdss-smp-mb-per-pipe = <3>;
+		qcom,mdss-smp-mb-per-pipe = <4>;
 		vdd-cx-supply = <&pm8226_s1_corner>;
 
 		qcom,vbif-settings = <0x004 0x00000001>,
@@ -116,7 +116,6 @@
 		reg-names = "dsi_ctrl", "dsi_phy", "mmss_misc_phys";
 		qcom,mdss-fb-map = <&mdss_fb0>;
 		qcom,mdss-mdp = <&mdss_mdp>;
-<<<<<<< HEAD
 		vdd-supply = <&pm8226_l15>;
 		vddio-supply = <&pm8226_l8>;
 		vdda-supply = <&pm8226_l4>;
@@ -163,8 +162,6 @@
 			qcom,supply-pre-off-sleep = <0>;
 			qcom,supply-post-off-sleep = <0>;
 		};
-=======
->>>>>>> 06383e4247ce... arch: boot: dts: Move msm8226 dts files
 	};
 
 	qcom,mdss_wb_panel {
