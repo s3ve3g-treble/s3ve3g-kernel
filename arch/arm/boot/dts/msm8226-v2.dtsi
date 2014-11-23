@@ -32,6 +32,7 @@
 };
 
 &apc_vreg_corner {
+<<<<<<< HEAD
 	regulator-min-microvolt = <1>;
 	regulator-max-microvolt = <14>;
 	qcom,cpr-up-threshold = <0>;
@@ -59,6 +60,22 @@
 			<2 2 2 4 10>,
 			<5 2 2 4 14>;
 	qcom,cpr-quot-adjust-scaling-factor-max = <650>;
+=======
+	qti,pvs-init-voltage = <1330000 1330000 1330000 1320000 1310000
+					1300000 1290000 1280000 1270000 1260000
+					1250000 1240000 1230000 1220000 1210000
+					1200000 1190000 1180000 1170000 1160000
+					1150000 1140000 1140000 1140000 1140000
+					1140000 1140000 1140000 1140000 1140000
+					1140000 1140000>;
+	qti,pvs-corner-ceiling-slow = <1140000 1150000 1280000>;
+	qti,pvs-corner-ceiling-nom  = <1140000 1140000 1200000>;
+	qti,pvs-corner-ceiling-fast = <1140000 1140000 1140000>;
+	qti,cpr-step-quotient = <30>;
+	qti,cpr-up-threshold = <0>;
+	qti,cpr-down-threshold = <5>;
+	qti,cpr-apc-volt-step = <10000>;
+>>>>>>> 06383e4247ce... arch: boot: dts: Move msm8226 dts files
 };
 
 &msm_gpu {
