@@ -31,6 +31,10 @@
 
 #include "usb.h"
 
+#ifdef CONFIG_USB_HOST_NOTIFY
+#include "sec-dock.h"
+#endif
+
 #if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
 #include <linux/usb/hcd.h>
 #include <linux/usb/ch11.h>
@@ -181,7 +185,6 @@ EXPORT_SYMBOL_GPL(ehci_cf_port_reset_rwsem);
 #define HUB_DEBOUNCE_STABLE	 100
 
 
-static void hub_release(struct kref *kref);
 static int usb_reset_and_verify_device(struct usb_device *udev);
 
 static inline char *portspeed(struct usb_hub *hub, int portstatus)
@@ -755,20 +758,10 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 	unsigned delay;
 
 	/* Continue a partial initialization */
-	if (type == HUB_INIT2 || type == HUB_INIT3) {
-                device_lock(hub->intfdev);
-
-                /* Was the hub disconnected while we were waiting? */
-                if (hub->disconnected) {
-                        device_unlock(hub->intfdev);
-                        kref_put(&hub->kref, hub_release);
-                        return;
-		}
-                if (type == HUB_INIT2)
-                        goto init2;
+	if (type == HUB_INIT2)
+		goto init2;
+	if (type == HUB_INIT3)
 		goto init3;
-	}
-        kref_get(&hub->kref);
 
 	/* The superspeed hub except for root hub has to use Hub Depth
 	 * value as an offset into the route string to locate the bits
@@ -962,7 +955,6 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 			PREPARE_DELAYED_WORK(&hub->init_work, hub_init_func3);
 			schedule_delayed_work(&hub->init_work,
 					msecs_to_jiffies(delay));
-                        device_unlock(hub->intfdev);
 			return;		/* Continues at init3: below */
 		} else {
 			msleep(delay);
@@ -983,11 +975,6 @@ static void hub_activate(struct usb_hub *hub, enum hub_activation_type type)
 	/* Allow autosuspend if it was suppressed */
 	if (type <= HUB_INIT3)
 		usb_autopm_put_interface_async(to_usb_interface(hub->intfdev));
-
-	if (type == HUB_INIT2 || type == HUB_INIT3)
-		device_unlock(hub->intfdev);
-
-	kref_put(&hub->kref, hub_release);
 }
 
 /* Implement the continuations for the delays above */
@@ -1378,8 +1365,9 @@ static int hub_probe(struct usb_interface *intf, const struct usb_device_id *id)
 	desc = intf->cur_altsetting;
 	hdev = interface_to_usbdev(intf);
 
-	/* Hubs have proper suspend/resume support. */
-	usb_enable_autosuspend(hdev);
+	if (!hdev->parent)
+		/* Hubs have proper suspend/resume support. */
+		usb_enable_autosuspend(hdev);
 
 	if (hdev->level == MAX_TOPO_LEVEL) {
 		dev_err(&intf->dev,
@@ -1732,6 +1720,10 @@ void usb_disconnect(struct usb_device **pdev)
 	dev_info(&udev->dev, "USB disconnect, device number %d\n",
 			udev->devnum);
 
+#ifdef CONFIG_USB_HOST_NOTIFY
+	call_battery_notify(udev, 0);
+#endif
+
 #ifdef CONFIG_USB_OTG
 	if (udev->bus->hnp_support && udev->portnum == udev->bus->otg_port) {
 		cancel_delayed_work_sync(&udev->bus->hnp_polling);
@@ -2055,6 +2047,12 @@ int usb_new_device(struct usb_device *udev)
 	/* Tell the world! */
 	announce_device(udev);
 
+#ifdef CONFIG_USB_HOST_NOTIFY
+#if defined(CONFIG_MUIC_MAX77693_SUPPORT_OTG_AUDIO_DOCK)
+	call_audiodock_notify(udev);
+#endif
+	call_battery_notify(udev, 1);
+#endif
 	device_enable_async_suspend(&udev->dev);
 
 	/*
@@ -3176,8 +3174,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 	for (i = 0; i < GET_DESCRIPTOR_TRIES; (++i, msleep(100))) {
 		if (USE_NEW_SCHEME(retry_counter) &&
 			!(hcd->driver->flags & HCD_USB3) &&
-			!((hcd->driver->flags & HCD_RT_OLD_ENUM) &&
-				!hdev->parent)) {
+			!(hcd->driver->flags & HCD_OLD_ENUM)) {
 			struct usb_device_descriptor *buf;
 			int r = 0;
 
@@ -3279,8 +3276,7 @@ hub_port_init (struct usb_hub *hub, struct usb_device *udev, int port1,
 			msleep(10);
 			if (USE_NEW_SCHEME(retry_counter) &&
 				!(hcd->driver->flags & HCD_USB3) &&
-				!((hcd->driver->flags & HCD_RT_OLD_ENUM) &&
-					!hdev->parent))
+				!(hcd->driver->flags & HCD_OLD_ENUM))
 				break;
   		}
 

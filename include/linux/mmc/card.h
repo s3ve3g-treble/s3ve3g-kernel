@@ -94,7 +94,6 @@ struct mmc_ext_csd {
 	u8			raw_erased_mem_count;	/* 181 */
 	u8			raw_ext_csd_structure;	/* 194 */
 	u8			raw_card_type;		/* 196 */
-	u8			raw_drive_strength;	/* 197 */
 	u8			out_of_int_time;	/* 198 */
 	u8			raw_s_a_timeout;		/* 217 */
 	u8			raw_hc_erase_gap_size;	/* 221 */
@@ -109,6 +108,22 @@ struct mmc_ext_csd {
 
 	unsigned int            feature_support;
 #define MMC_DISCARD_FEATURE	BIT(0)                  /* CMD38 feature */
+	/*
+	 * smart_info : It's for eMMC 5.0 or later device
+	 * [63:56] : DEVICE_LIFE_TIME_EST_TYPE_B [269]
+	 * [55:48] : DEVICE_LIFE_TIME_EST_TYPE_A [268]
+	 * [47:40] : PRE_EOL_INFO [267]
+	 * [39:32] : OPTIMAL_TRIM_UNIT_SIZE [264]
+	 * [31:16] : DEVICE_VERSION [263-262]
+	 * [15:08] : HC_ERASE_GRP_SIZE [224]
+	 * [07:00] : HC_WP_GRP_SIZE [221]
+	 */
+	unsigned long long	smart_info;
+	/*
+	 * fwdate : It's for eMMC 5.0 or later device
+	 * [63:00] : FIRMWARE_VERSION [261-254]
+	 */
+	unsigned long long	fwdate;
 };
 
 struct sd_scr {
@@ -310,10 +325,6 @@ struct mmc_bkops_info {
 #define BKOPS_SIZE_PERCENTAGE_TO_QUEUE_DELAYED_WORK 1 /* 1% */
 };
 
-enum mmc_pon_type {
-	MMC_LONG_PON = 1,
-	MMC_SHRT_PON,
-};
 /*
  * MMC device
  */
@@ -357,10 +368,8 @@ struct mmc_card {
 #define MMC_QUIRK_INAND_DATA_TIMEOUT  (1<<8)    /* For incorrect data timeout */
 /* To avoid eMMC device getting broken permanently due to HPI feature */
 #define MMC_QUIRK_BROKEN_HPI (1 << 11)
- /* Skip data-timeout advertised by card */
-#define MMC_QUIRK_BROKEN_DATA_TIMEOUT	(1<<12)
-
-#define MMC_QUIRK_CACHE_DISABLE (1 << 14)       /* prevent cache enable */
+/* Skip data-timeout advertised by card */
+#define MMC_QUIRK_BROKEN_DATA_TIMEOUT	(1<<13)
 
 	unsigned int		erase_size;	/* erase size in sectors */
  	unsigned int		erase_shift;	/* if erase unit is power 2 */
@@ -388,6 +397,10 @@ struct mmc_card {
 
 	unsigned int		sd_bus_speed;	/* Bus Speed Mode set for the card */
 
+	struct device_attribute	bkops_attr;	/* for enable/disable bkops mode */
+	u8			bkops_enable;	/* bkops mode on/off */
+	spinlock_t		bkops_lock;	/* lock for bkops_enable filed */
+
 	struct dentry		*debugfs_root;
 	struct mmc_part	part[MMC_NUM_PHY_PARTITION]; /* physical partitions */
 	unsigned int    nr_parts;
@@ -400,7 +413,7 @@ struct mmc_card {
 	struct device_attribute rpm_attrib;
 	unsigned int		idle_timeout;
 	struct notifier_block        reboot_notify;
-	enum mmc_pon_type pon_type;
+	bool issue_long_pon;
 	u8 *cached_ext_csd;
 };
 
@@ -458,7 +471,6 @@ struct mmc_fixup {
 #define CID_MANFID_TOSHIBA	0x11
 #define CID_MANFID_MICRON	0x13
 #define CID_MANFID_SAMSUNG	0x15
-#define CID_MANFID_KINGSTON	0x70
 #define CID_MANFID_HYNIX	0x90
 
 #define END_FIXUP { 0 }
@@ -658,5 +670,5 @@ extern struct mmc_wr_pack_stats *mmc_blk_get_packed_statistics(
 			struct mmc_card *card);
 extern void mmc_blk_init_packed_statistics(struct mmc_card *card);
 extern void mmc_blk_disable_wr_packing(struct mmc_queue *mq);
-extern int mmc_send_pon(struct mmc_card *card);
+extern int mmc_send_long_pon(struct mmc_card *card);
 #endif /* LINUX_MMC_CARD_H */

@@ -1,4 +1,4 @@
-/* Copyright (c) 2011-2014, 2016, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -516,18 +516,13 @@ static int msm_ipc_router_ioctl(struct socket *sock,
 
 		ret = copy_to_user((void *)arg, &server_arg,
 				   sizeof(server_arg));
-
-		n = min(server_arg.num_entries_found,
-			server_arg.num_entries_in_array);
-
-		if (ret == 0 && n) {
+		if (srv_info_sz) {
 			ret = copy_to_user((void *)(arg + sizeof(server_arg)),
-					   srv_info, n * sizeof(*srv_info));
+					   srv_info, srv_info_sz);
+			if (ret)
+				ret = -EFAULT;
+			kfree(srv_info);
 		}
-
-		if (ret)
-			ret = -EFAULT;
-		kfree(srv_info);
 		break;
 
 	case IPC_ROUTER_IOCTL_BIND_CONTROL_PORT:
@@ -631,13 +626,13 @@ void msm_ipc_router_ipc_log_init(void)
 {
 	ipc_req_resp_log_txt =
 		ipc_log_context_create(REQ_RESP_IPC_LOG_PAGES,
-			"ipc_rtr_req_resp", 0);
+			"ipc_rtr_req_resp");
 	if (!ipc_req_resp_log_txt) {
 		pr_err("%s: Unable to create IPC logging for Req/Resp",
 			__func__);
 	}
 	ipc_ind_log_txt =
-		ipc_log_context_create(IND_IPC_LOG_PAGES, "ipc_rtr_ind", 0);
+		ipc_log_context_create(IND_IPC_LOG_PAGES, "ipc_rtr_ind");
 	if (!ipc_ind_log_txt) {
 		pr_err("%s: Unable to create IPC logging for Indications",
 			__func__);

@@ -103,7 +103,7 @@ struct branch_clk {
 	const u32 bcr_reg;
 	int has_sibling;
 	u32 cur_div;
-	u32 max_div;
+	const u32 max_div;
 	const u32 halt_check;
 	void *const __iomem *base;
 };
@@ -162,6 +162,8 @@ static inline struct measure_clk *to_measure_clk(struct clk *clk)
  */
 void set_rate_mnd(struct rcg_clk *clk, struct clk_freq_tbl *nf);
 void set_rate_hid(struct rcg_clk *clk, struct clk_freq_tbl *nf);
+
+extern int set_rate_edp_pixel(struct clk *clk, unsigned long rate);
 
 /*
  * Variables from the clock-local driver

@@ -497,6 +497,14 @@ void __init arm_memblock_init(struct meminfo *mi, struct machine_desc *mdesc)
 	if (mdesc->reserve)
 		mdesc->reserve();
 
+#if 1 //def CONFIG_SEC_DEBUG
+#ifndef CONFIG_SECURE_MPU_LOCK
+	/* Debugging code for ext4 panic issue during eMBMS service(H KT)
+	   This will be backed out later */
+	memblock_reserve(0x0, PAGE_SIZE);
+#endif
+#endif
+
 	/*
 	 * reserve memory for DMA contigouos allocations,
 	 * must come from DMA area inside low memory
@@ -739,7 +747,7 @@ static void __init free_highpages(void)
 #define MLK_ROUNDUP(b, t) b, t, DIV_ROUND_UP(((t) - (b)), SZ_1K)
 
 #ifdef CONFIG_ENABLE_VMALLOC_SAVING
-static void print_vmalloc_lowmem_info(void)
+void print_vmalloc_lowmem_info(void)
 {
 	int i;
 	void *va_start, *va_end;
@@ -759,21 +767,11 @@ static void print_vmalloc_lowmem_info(void)
 		}
 		if (i && ((meminfo.bank[i-1].start + meminfo.bank[i-1].size) !=
 			   meminfo.bank[i].start)) {
-			phys_addr_t end_phys;
-
-			if((meminfo.bank[i-1].start + meminfo.bank[i-1].size) > arm_lowmem_limit)
-				continue;
-
-			if(meminfo.bank[i].start > arm_lowmem_limit)
-				end_phys = arm_lowmem_limit;
-			else
-				end_phys = meminfo.bank[i].start;
-
 			if (meminfo.bank[i-1].start + meminfo.bank[i-1].size
 				   <= MAX_HOLE_ADDRESS) {
 				va_start = __va(meminfo.bank[i-1].start
 						+ meminfo.bank[i-1].size);
-				va_end = __va(end_phys);
+				va_end = __va(meminfo.bank[i].start);
 				printk(KERN_NOTICE
 				"	   vmalloc : 0x%08lx - 0x%08lx   (%4ld MB)\n",
 					   MLM((unsigned long)va_start,
