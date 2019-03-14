@@ -1649,10 +1649,8 @@ static int mdss_dsi_panel_on(struct mdss_panel_data *pdata)
 	if (ctrl->on_cmds.cmd_cnt)
 		mdss_dsi_panel_cmds_send(ctrl, &ctrl->on_cmds);
 #if defined(CONFIG_MACH_S3VE3G_EUR)	
-	if(bl_first_update== 0){
-		bl_first_update = 1;
+	if(bl_first_update== 0)
 		pr_err("to maintain ddefault brightness \n");
-	}
 	else
 		mdss_dsi_panel_bl_ctrl(pdata,msd.mfd->bl_previous);
 #endif
@@ -2226,7 +2224,7 @@ static ssize_t mipi_samsung_disp_acl_show(struct device *dev,
 {
 	int rc;
 
-	rc = snprintf((char *)buf, sizeof(buf), "%d\n", msd.dstat.acl_on);
+	rc = sprintf((char *)buf, "%d\n", msd.dstat.acl_on);
 	printk("acl status: %d\n", *buf);
 
 	return rc;
@@ -2347,7 +2345,7 @@ static ssize_t mdss_s6e8aa0a_auto_brightness_show(struct device *dev,
 {
 	int rc;
 
-	rc = snprintf(buf, sizeof(buf), "%d\n",
+	rc = sprintf(buf, "%d\n",
 					msd.dstat.auto_brightness);
 	pr_info("%s : auto_brightness : %d\n", __func__, msd.dstat.auto_brightness);
 
